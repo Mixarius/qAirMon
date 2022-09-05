@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import requests
 import rumps
 from fake_user_agent import user_agent
@@ -13,13 +15,17 @@ LEVEL_TYPES = {
     'AIRMAGEDDON':  'data/airmageddon.png'
 }
 UA = user_agent("safari")
+UPDATED = "Updated"
+ADDRESS = "Address"
 
 
 class QAirMonApp(rumps.App):
     url = 'https://widget.airly.org/api/v1/'
+    current_level = LEVEL_TYPES['OFFLINE']
 
+    @rumps.clicked(UPDATED)
     @rumps.timer(60)
-    def get_air_quality(self) -> None:
+    def get_air_quality(self, sender) -> None:
         """ Get air quality from Airly API """
         headers = {
             'Origin': 'https://airly.org',
@@ -43,8 +49,17 @@ class QAirMonApp(rumps.App):
         try:
             response = requests.get(url=self.url, headers=headers, params=params)
             if response and response.status_code == 200:
-                level = response.json()['level']
+                json_data = response.json()
+
+                level = json_data['level']
                 self.icon = LEVEL_TYPES[level]
+
+                datetime_object = datetime.strptime(json_data['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                datetime_str = datetime_object.strftime('%y-%m-%d %H:%M:%S')
+                self.menu[UPDATED].title = f'{UPDATED}: {datetime_str}'
+
+                self.menu[ADDRESS].title = f'{ADDRESS}: {json_data["address"]}'
+
         except requests.exceptions.HTTPError as errh:
             print("Http Error:", errh)
         except requests.exceptions.ConnectionError:
@@ -57,5 +72,12 @@ class QAirMonApp(rumps.App):
 
 if __name__ == "__main__":
     app = QAirMonApp("Quality Air Monitor", title=None, icon='data/offline.png')
+    app.menu = [
+        UPDATED,
+        ADDRESS,
+        None,
+        "Preferences",
+        None,
+    ]
     rumps.debug_mode(True)
     app.run()
