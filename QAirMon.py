@@ -18,14 +18,9 @@ LEVEL_TYPES = {
     'EXTREME': 'data/levels/extreme.png',
     'AIRMAGEDDON': 'data/levels/airmageddon.png'
 }
-UPDATED = 'UPDATED'
-ADDRESS = 'ADDRESS'
-CURRENT_COORDINATES = f'CURRENT_COORDINATES'
-TIMER = 'TIMER'
 
 
-
-class App():
+class App:
     """
     System Tray app to connect to VPN
     """
@@ -43,11 +38,11 @@ class App():
         """  Run App with parameters  """
         self.app = rumps.App("Quality Air Monitor", title=None, icon='data/levels/offline.png')
         self.app.menu = [
-            rumps.MenuItem(title=UPDATED, callback=self.refresh_status, icon='data/updated.png'),
-            rumps.MenuItem(title=ADDRESS, icon='data/address.png'),
+            rumps.MenuItem(title='UPDATED', callback=self.refresh_status, icon='data/updated.png'),
+            rumps.MenuItem(title='ADDRESS', icon='data/address.png'),
             None,
-            rumps.MenuItem(title=CURRENT_COORDINATES, callback=self.set_coordinates, icon='data/set_coordinates.png'),
-            rumps.MenuItem(title=TIMER, callback=self.set_timer, icon='data/timer.png'),
+            rumps.MenuItem(title='CURRENT_COORDINATES', callback=self.set_coordinates, icon='data/set_coordinates.png'),
+            rumps.MenuItem(title='TIMER', callback=self.set_timer, icon='data/timer.png'),
             None,
         ]
 
@@ -112,36 +107,36 @@ class App():
         response = self.get_air_quality()
 
         if self.timer.interval != 0:
-            self.app.menu[TIMER].title = f'Timer ON. Every {self.timer.interval//60} min.'
-            self.app.menu[TIMER].state = 1
+            self.app.menu['TIMER'].title = f'Timer ON. Every {self.timer.interval//60} min.'
+            self.app.menu['TIMER'].state = 1
         else:
-            self.app.menu[TIMER].title = f'Timer OFF. No interval specified'
-            self.app.menu[TIMER].state = 0
+            self.app.menu['TIMER'].title = f'Timer OFF. No interval specified'
+            self.app.menu['TIMER'].state = 0
 
         if self.latitude and self.longitude:
-            self.app.menu[CURRENT_COORDINATES].title = f'{self.latitude}, {self.longitude}'
+            self.app.menu['CURRENT_COORDINATES'].title = f'{self.latitude}, {self.longitude}'
         else:
-            self.app.menu[CURRENT_COORDINATES].title = f'No coordinates'
+            self.app.menu['CURRENT_COORDINATES'].title = f'No coordinates'
 
-        if response['level'] and self.app.menu[TIMER].state:
+        if response['level'] and self.app.menu['TIMER'].state:
             self.app.icon = response['level']
         else:
             self.app.icon = LEVEL_TYPES['OFFLINE']
 
         if response["updated"]:
-            self.app.menu[UPDATED].title = f'Updated: {response["updated"]}'
+            self.app.menu['UPDATED'].title = f'Updated: {response["updated"]}'
         else:
-            self.app.menu[UPDATED].title = f'Not updated'
+            self.app.menu['UPDATED'].title = f'Not updated'
 
         if response['address']:
-            self.app.menu[ADDRESS].title = f'{response["address"]}'
+            self.app.menu['ADDRESS'].title = f'{response["address"]}'
         else:
-            self.app.menu[ADDRESS].title = f'No address'
+            self.app.menu['ADDRESS'].title = f'No address'
 
     def set_coordinates(self, _):
         """ Set address coordinates for monitoring  """
         setting_window = rumps.Window(
-        title='Coordinates',
+            title='Coordinates',
             message=f'Set the coordinates where you want to monitor the air.\n '
                     f'Copy the coordinates into Google Maps and paste them here.\n'
                     f'For example: 52.23984247229307, 21.045780515509897',
@@ -165,7 +160,7 @@ class App():
         setting_window = rumps.Window(
             title='Timer',
             message=f'Set interval in minutes to wait before requesting '
-                    f'the Airly API and the timer will be ON.\nIf value is 0 then timer is OFF',
+                    f'the Airly API and the timer will be ON.\nIf value is 0 then timer is OFF.',
             default_text=f'{self.timer.interval//60}',
             ok='Save',
             cancel='Cancel',
@@ -177,7 +172,6 @@ class App():
             if (payload := str(response.text).strip()).isnumeric():
                 self.timer.nterval = int(payload)*60
                 self.refresh_status(None)
-
 
 
 if __name__ == "__main__":
