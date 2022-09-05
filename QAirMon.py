@@ -22,10 +22,9 @@ LEVEL_TYPES = {
 
 class App:
     """
-    System Tray app to connect to VPN
+    System Tray app for monitoring air quality via Airly API
     """
     def __init__(self):
-        # app initially set as None to signal when app starts
         self.app = None
         self.timer = None
         self.timer_status = False
