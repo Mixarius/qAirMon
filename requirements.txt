@@ -1,0 +1,4 @@
+fake-user-agent==2.1.5
+requests==2.28.1
+rumps==0.3.0
+
