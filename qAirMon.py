@@ -9,14 +9,14 @@ DEBUG = True
 UA = user_agent('safari')
 
 LEVEL_TYPES = {
-    'OFFLINE': 'data/offline.png',
-    'VERY_LOW': 'data/very_low.png',
-    'LOW': 'data/low.png',
-    'MEDIUM': 'data/medium.png',
-    'HIGH': 'data/high.png',
-    'VERY_HIGH': 'data/very_high.png',
-    'EXTREME': 'data/extreme.png',
-    'AIRMAGEDDON': 'data/airmageddon.png'
+    'OFFLINE': 'data/levels/offline.png',
+    'VERY_LOW': 'data/levels/very_low.png',
+    'LOW': 'data/levels/low.png',
+    'MEDIUM': 'data/levels/medium.png',
+    'HIGH': 'data/levels/high.png',
+    'VERY_HIGH': 'data/levels/very_high.png',
+    'EXTREME': 'data/levels/extreme.png',
+    'AIRMAGEDDON': 'data/levels/airmageddon.png'
 }
 UPDATED = 'UPDATED'
 ADDRESS = 'ADDRESS'
@@ -33,7 +33,6 @@ class App():
         # app initially set as None to signal when app starts
         self.app = None
         self.timer = None
-        self.timer_interval = 1
         self.timer_status = False
         self.url = 'https://widget.airly.org/api/v1/'
         self.current_level = LEVEL_TYPES['OFFLINE']
@@ -42,7 +41,7 @@ class App():
 
     def run(self):
         """  Run App with parameters  """
-        self.app = rumps.App("Quality Air Monitor", title=None, icon='data/offline.png')
+        self.app = rumps.App("Quality Air Monitor", title=None, icon='data/levels/offline.png')
         self.app.menu = [
             rumps.MenuItem(title=UPDATED, callback=self.refresh_status, icon='data/updated.png'),
             rumps.MenuItem(title=ADDRESS, icon='data/address.png'),
@@ -52,7 +51,7 @@ class App():
             None,
         ]
 
-        self.timer = rumps.Timer(callback=self.refresh_status, interval=self.timer_interval*60)
+        self.timer = rumps.Timer(callback=self.refresh_status, interval=60)
         rumps.debug_mode(DEBUG)
 
         self.refresh_status(None)
@@ -112,9 +111,8 @@ class App():
         """Refresh AIRLY CAQI information on menu."""
         response = self.get_air_quality()
 
-        if self.timer_interval:
-            self.app.menu[TIMER].title = f'Timer ON. Every {self.timer_interval} min.'
-            self.timer.interval = self.timer_interval * 60
+        if self.timer.interval != 0:
+            self.app.menu[TIMER].title = f'Timer ON. Every {self.timer.interval//60} min.'
             self.app.menu[TIMER].state = 1
         else:
             self.app.menu[TIMER].title = f'Timer OFF. No interval specified'
@@ -145,7 +143,8 @@ class App():
         setting_window = rumps.Window(
         title='Coordinates',
             message=f'Set the coordinates where you want to monitor the air.\n '
-                    f'Copy the coordinates into Google Maps and paste them here.',
+                    f'Copy the coordinates into Google Maps and paste them here.\n'
+                    f'For example: 52.23984247229307, 21.045780515509897',
             default_text=f'{self.latitude}, {self.longitude}',
             ok='Save',
             cancel='Cancel'
@@ -154,9 +153,10 @@ class App():
 
         response = setting_window.run()
         if response.clicked:
-            latitude, longitude = str(response.text).strip().split(', ')
-            self.latitude = latitude
-            self.longitude = longitude
+            latitude, longitude = (s.strip() for s in str(response.text).split(','))
+            if latitude.isnumeric() and longitude.isnumeric():
+                self.latitude = latitude.strip()
+                self.longitude = longitude.strip()
 
             self.refresh_status(None)
 
@@ -166,7 +166,7 @@ class App():
             title='Timer',
             message=f'Set interval in minutes to wait before requesting '
                     f'the Airly API and the timer will be ON.\nIf value is 0 then timer is OFF',
-            default_text=f'{self.timer_interval}',
+            default_text=f'{self.timer.interval//60}',
             ok='Save',
             cancel='Cancel',
             dimensions=(100, 20)
@@ -175,7 +175,7 @@ class App():
         response = setting_window.run()
         if response.clicked:
             if (payload := str(response.text).strip()).isnumeric():
-                self.timer_interval = int(payload)
+                self.timer.nterval = int(payload)*60
                 self.refresh_status(None)
 
 
