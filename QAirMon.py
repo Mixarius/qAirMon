@@ -27,7 +27,6 @@ class App:
     def __init__(self):
         self.app = None
         self.timer = None
-        self.timer_status = False
         self.url = 'https://widget.airly.org/api/v1/'
         self.current_level = LEVEL_TYPES['OFFLINE']
         self.latitude = '52.2394646242'  # https://airly.org/map/en/#52.2394646242,21.0457174815
@@ -39,16 +38,16 @@ class App:
         self.app.menu = [
             rumps.MenuItem(title='UPDATED', callback=self.refresh_status, icon='data/updated.png'),
             rumps.MenuItem(title='ADDRESS', icon='data/address.png'),
+            rumps.MenuItem(title='CURRENT_TIMER'),
             None,
             rumps.MenuItem(title='CURRENT_COORDINATES', callback=self.set_coordinates, icon='data/set_coordinates.png'),
-            rumps.MenuItem(title='TIMER', callback=self.set_timer, icon='data/timer.png'),
+            rumps.MenuItem(title=f'⚙️️Timer settings', callback=self.set_timer),
             None,
         ]
 
         self.timer = rumps.Timer(callback=self.refresh_status, interval=60)
+        self.timer.start()
         rumps.debug_mode(DEBUG)
-
-        self.refresh_status(None)
         self.app.run()
 
     def get_air_quality(self) -> defaultdict:
@@ -101,23 +100,24 @@ class App:
 
         return result
 
+    def refresh_status_timer(self, _):
+        timer_status = 'ON' if self.timer.is_alive() else 'OFF'
+        self.app.menu[
+            'CURRENT_TIMER'].title = f'⏱Timer {timer_status}. Repeat the request every {self.timer.interval // 60} min.'
+        self.app.menu['CURRENT_TIMER'].state = self.timer.is_alive()
+
     def refresh_status(self, _):
         """Refresh AIRLY CAQI information on menu."""
         response = self.get_air_quality()
 
-        if self.timer.interval != 0:
-            self.app.menu['TIMER'].title = f'Timer ON. Every {self.timer.interval//60} min.'
-            self.app.menu['TIMER'].state = 1
-        else:
-            self.app.menu['TIMER'].title = f'Timer OFF. No interval specified'
-            self.app.menu['TIMER'].state = 0
+        self.refresh_status_timer(None)
 
         if self.latitude and self.longitude:
             self.app.menu['CURRENT_COORDINATES'].title = f'{self.latitude}, {self.longitude}'
         else:
             self.app.menu['CURRENT_COORDINATES'].title = f'No coordinates'
 
-        if response['level'] and self.app.menu['TIMER'].state:
+        if response['level'] and self.timer.is_alive():
             self.app.icon = response['level']
         else:
             self.app.icon = LEVEL_TYPES['OFFLINE']
@@ -158,20 +158,28 @@ class App:
         """ Set interval in seconds to wait before requesting the Airly API  """
         setting_window = rumps.Window(
             title='Timer',
-            message=f'Set interval in minutes to wait before requesting '
-                    f'the Airly API and the timer will be ON.\nIf value is 0 then timer is OFF.',
+            message=f'Set interval in minutes to wait before requesting the Airly.'
+                    f'',
             default_text=f'{self.timer.interval//60}',
             ok='Save',
             cancel='Cancel',
             dimensions=(100, 20)
         )
+        timer_status = 'Turn OFF' if self.timer.is_alive() else 'Turn ON'
+        setting_window.add_button(timer_status)
         setting_window.icon = 'data/setting.png'
         response = setting_window.run()
-        if response.clicked:
+        if response.clicked == 1:
             if (payload := str(response.text).strip()).isnumeric():
                 self.timer.interval = int(payload)*60
-                self.refresh_status(None)
+                self.refresh_status_timer(None)
 
+        elif response.clicked == 2:
+            if self.timer.is_alive():
+                self.timer.stop()
+            else:
+                self.timer.start()
+            self.refresh_status_timer(None)
 
 if __name__ == "__main__":
     app = App()
