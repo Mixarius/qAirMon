@@ -8,7 +8,7 @@ from fake_user_agent import user_agent
 DEBUG = True
 UA = user_agent('safari')
 
-APP_ICON_BY_LEVEL = {
+APP_ICON = {
     '': 'data/levels/offline.png',
     'VERY_LOW': 'data/levels/very_low.png',
     'LOW': 'data/levels/low.png',
@@ -19,7 +19,7 @@ APP_ICON_BY_LEVEL = {
     'AIRMAGEDDON': 'data/levels/airmageddon.png'
 }
 
-MESSAGE_ICON_BY_LEVEL = {
+LEVEL_ICON = {
     '': '🔵️',
     'VERY_LOW': '✅',
     'LOW': '🟢️',
@@ -39,19 +39,19 @@ class App:
         self.app = None
         self.timer = None
         self.url = 'https://widget.airly.org/api/v1/'
-        self.current_level = APP_ICON_BY_LEVEL['']
+        self.current_level = ''
         self.latitude = '52.2394646242'  # https://airly.org/map/en/#52.2394646242,21.0457174815
         self.longitude = '21.0457174815'
 
     def run(self):
         """  Run App with parameters  """
-        self.app = rumps.App("Quality Air Monitor", title=None, icon=APP_ICON_BY_LEVEL[''])
+        self.app = rumps.App("Quality Air Monitor", title=None, icon=APP_ICON[''])
         self.app.menu = [
             rumps.MenuItem(title='Check Now', callback=self.refresh_status),
             rumps.MenuItem(title='Pause Checking', callback=self.switch_timer),
             None,
-            rumps.MenuItem(title='DESCRIPTION'),
             rumps.MenuItem(title='DATE'),
+            rumps.MenuItem(title='DESCRIPTION', callback=self.send_notification),
             rumps.MenuItem(title='ADDRESS'),
             rumps.MenuItem(title='CURRENT_COORDINATES'),
             None,
@@ -61,7 +61,7 @@ class App:
             None,
         ]
 
-        self.timer = rumps.Timer(callback=self.refresh_status, interval=60)
+        self.timer = rumps.Timer(callback=self.refresh_status, interval=300)
         self.timer.start()
         rumps.debug_mode(DEBUG)
         self.app.run()
@@ -121,7 +121,7 @@ class App:
         return result
 
     def refresh_status_timer(self, _):
-        ''' Update timer status in the menu '''
+        """ Update timer status in the menu """
         self.app.menu['Pause Checking'].state = not self.timer.is_alive()
 
     def refresh_status(self, _):
@@ -129,22 +129,26 @@ class App:
         response = self.get_air_quality()
 
         description = (f'{response["description"]}' if response['description']
-                       else f'🏠Not description')
-        self.app.menu['DESCRIPTION'].title = (f'{MESSAGE_ICON_BY_LEVEL[response["level"]]}'
+                       else f'🏠 Not description')
+        self.app.menu['DESCRIPTION'].title = (f'{LEVEL_ICON[response["level"]]} '
                                               f'{description}')
 
-        self.app.menu['DATE'].title = (f'📅{response["date"]}'
-                                       if response["date"] else f'📅Not checked')
+        self.app.menu['DATE'].title = (f'📅 {response["date"]}'
+                                       if response["date"] else f'📅 Not checked')
 
-        self.app.menu['ADDRESS'].title = (f'🏠{response["address"]}'
+        self.app.menu['ADDRESS'].title = (f'🏠 {response["address"]}'
                                           if response['address'] else f'🏠Not address')
 
-        self.app.menu['CURRENT_COORDINATES'].title = (f'⛳{self.latitude},'
+        self.app.menu['CURRENT_COORDINATES'].title = (f'⛳ {self.latitude},'
                                                       f' {self.longitude}')
 
         self.refresh_status_timer(None)
 
-        self.app.icon = APP_ICON_BY_LEVEL[response['level']]
+        self.app.icon = APP_ICON[response["level"]]
+
+        if self.current_level != response['level']:
+            self.current_level = response['level']
+            self.send_notification(None)
 
     def set_coordinates(self, _):
         """ Set address coordinates for monitoring  """
@@ -175,8 +179,7 @@ class App:
             cancel='Cancel',
             dimensions=(100, 20)
         )
-        timer_status = 'Turn OFF' if self.timer.is_alive() else 'Turn ON'
-        setting_window.add_button(timer_status)
+
         setting_window.icon = 'data/setting.png'
         response = setting_window.run()
         if response.clicked:
@@ -184,15 +187,22 @@ class App:
                 self.timer.interval = int(payload)*60
                 self.refresh_status_timer(None)
 
-    def switch_timer(self,_):
-        ''' Switching timer function '''
+    def switch_timer(self, _):
+        """ Switching timer function """
         if self.timer.is_alive():
             self.timer.stop()
             self.refresh_status_timer(None)
-            self.app.icon = APP_ICON_BY_LEVEL['']
+            self.app.icon = APP_ICON['']
         else:
             self.timer.start()
             self.refresh_status(None)
+
+    def send_notification(self, _):
+        title = self.app.menu['DESCRIPTION'].title
+        subtitle = None
+        message = self.app.menu['ADDRESS'].title
+
+        rumps.notification(title, subtitle, message, data=None, sound=True)
 
 
 if __name__ == "__main__":
