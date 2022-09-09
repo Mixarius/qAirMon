@@ -90,9 +90,11 @@ class App:
                 result['level'] = json_data['level']
                 result['address'] = json_data['address']
 
-                datetime_object = datetime.strptime(json_data['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                datetime_str = datetime_object.strftime('%Y-%m-%d %H:%M:%S')
-                result['date'] = datetime_str
+                datetime_object = (
+                        datetime.strptime(json_data['date'], '%Y-%m-%dT%H:%M:%S.%fZ') +
+                        (datetime.now() - datetime.utcnow())
+                )
+                result['date'] = datetime_object.strftime('%Y-%m-%d %H:%M:%S')
 
                 result['description'] = json_data['description']
 
