@@ -9,7 +9,7 @@ DEBUG = True
 UA = user_agent('safari')
 
 LEVEL_TYPES = {
-    'OFFLINE': 'data/levels/offline.png',
+    '': 'data/levels/offline.png',
     'VERY_LOW': 'data/levels/very_low.png',
     'LOW': 'data/levels/low.png',
     'MEDIUM': 'data/levels/medium.png',
@@ -28,20 +28,25 @@ class App:
         self.app = None
         self.timer = None
         self.url = 'https://widget.airly.org/api/v1/'
-        self.current_level = LEVEL_TYPES['OFFLINE']
+        self.current_level = LEVEL_TYPES['']
         self.latitude = '52.2394646242'  # https://airly.org/map/en/#52.2394646242,21.0457174815
         self.longitude = '21.0457174815'
 
     def run(self):
         """  Run App with parameters  """
-        self.app = rumps.App("Quality Air Monitor", title=None, icon='data/levels/offline.png')
+        self.app = rumps.App("Quality Air Monitor", title=None, icon=LEVEL_TYPES[''])
         self.app.menu = [
-            rumps.MenuItem(title='UPDATED', callback=self.refresh_status, icon='data/updated.png'),
-            rumps.MenuItem(title='ADDRESS', icon='data/address.png'),
-            rumps.MenuItem(title='CURRENT_TIMER'),
+            rumps.MenuItem(title='Check Now', callback=self.refresh_status),
+            rumps.MenuItem(title='Pause Checking', callback=self.switch_timer),
             None,
-            rumps.MenuItem(title='CURRENT_COORDINATES', callback=self.set_coordinates, icon='data/set_coordinates.png'),
-            rumps.MenuItem(title=f'⚙️️Timer settings', callback=self.set_timer),
+            rumps.MenuItem(title='DESCRIPTION'),
+            rumps.MenuItem(title='DATE'),
+            rumps.MenuItem(title='ADDRESS'),
+            rumps.MenuItem(title='CURRENT_COORDINATES'),
+            None,
+            [rumps.MenuItem(title='Preferences'),
+             [rumps.MenuItem(title='Set coordinates', callback=self.set_coordinates),
+              rumps.MenuItem(title='Set timer interval', callback=self.set_timer_interval)]],
             None,
         ]
 
@@ -82,12 +87,14 @@ class App:
             if response and response.status_code == 200:
                 json_data = response.json()
 
-                result['level'] = LEVEL_TYPES[json_data['level']]
-                result['address'] = json_data["address"]
+                result['level'] = json_data['level']
+                result['address'] = json_data['address']
 
                 datetime_object = datetime.strptime(json_data['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
                 datetime_str = datetime_object.strftime('%Y-%m-%d %H:%M:%S')
-                result['updated'] = datetime_str
+                result['date'] = datetime_str
+
+                result['description'] = json_data['description']
 
         except requests.exceptions.ConnectionError as err:
             print("Connection Error:", err)
@@ -101,36 +108,29 @@ class App:
         return result
 
     def refresh_status_timer(self, _):
-        timer_status = 'ON' if self.timer.is_alive() else 'OFF'
-        self.app.menu[
-            'CURRENT_TIMER'].title = f'⏱Timer {timer_status}. Repeat the request every {self.timer.interval // 60} min.'
-        self.app.menu['CURRENT_TIMER'].state = self.timer.is_alive()
+        ''' Update timer status in the menu '''
+        self.app.menu['Pause Checking'].state = not self.timer.is_alive()
 
     def refresh_status(self, _):
         """Refresh AIRLY CAQI information on menu."""
         response = self.get_air_quality()
 
+        self.app.menu['DESCRIPTION'].title = (f'🟢{response["description"]}'
+                                              if response['description']
+                                              else f'🏠Not description')
+
+        self.app.menu['DATE'].title = (f'📅{response["date"]}'
+                                       if response["date"] else f'📅Not checked')
+
+        self.app.menu['ADDRESS'].title = (f'🏠{response["address"]}'
+                                          if response['address'] else f'🏠Not address')
+
+        self.app.menu['CURRENT_COORDINATES'].title = (f'⛳{self.latitude},'
+                                                      f' {self.longitude}')
+
         self.refresh_status_timer(None)
 
-        if self.latitude and self.longitude:
-            self.app.menu['CURRENT_COORDINATES'].title = f'{self.latitude}, {self.longitude}'
-        else:
-            self.app.menu['CURRENT_COORDINATES'].title = f'No coordinates'
-
-        if response['level'] and self.timer.is_alive():
-            self.app.icon = response['level']
-        else:
-            self.app.icon = LEVEL_TYPES['OFFLINE']
-
-        if response["updated"]:
-            self.app.menu['UPDATED'].title = f'Updated: {response["updated"]}'
-        else:
-            self.app.menu['UPDATED'].title = f'Not updated'
-
-        if response['address']:
-            self.app.menu['ADDRESS'].title = f'{response["address"]}'
-        else:
-            self.app.menu['ADDRESS'].title = f'No address'
+        self.app.icon = LEVEL_TYPES[response['level']]
 
     def set_coordinates(self, _):
         """ Set address coordinates for monitoring  """
@@ -138,7 +138,7 @@ class App:
             title='Coordinates',
             message=f'Set the coordinates where you want to monitor the air.\n '
                     f'Copy the coordinates into Google Maps and paste them here.\n'
-                    f'For example: 52.23984247229307, 21.045780515509897',
+                    f'For example: 52.23955, 21.045800',
             default_text=f'{self.latitude}, {self.longitude}',
             ok='Save',
             cancel='Cancel'
@@ -147,14 +147,10 @@ class App:
 
         response = setting_window.run()
         if response.clicked:
-            latitude, longitude = (s.strip() for s in str(response.text).split(','))
-            if latitude.isnumeric() and longitude.isnumeric():
-                self.latitude = latitude.strip()
-                self.longitude = longitude.strip()
-
+            self.latitude, self.longitude = (s.strip() for s in str(response.text).split(','))
             self.refresh_status(None)
 
-    def set_timer(self, _):
+    def set_timer_interval(self, _):
         """ Set interval in seconds to wait before requesting the Airly API  """
         setting_window = rumps.Window(
             title='Timer',
@@ -169,17 +165,21 @@ class App:
         setting_window.add_button(timer_status)
         setting_window.icon = 'data/setting.png'
         response = setting_window.run()
-        if response.clicked == 1:
+        if response.clicked:
             if (payload := str(response.text).strip()).isnumeric():
                 self.timer.interval = int(payload)*60
                 self.refresh_status_timer(None)
 
-        elif response.clicked == 2:
-            if self.timer.is_alive():
-                self.timer.stop()
-            else:
-                self.timer.start()
+    def switch_timer(self,_):
+        ''' Switching timer function '''
+        if self.timer.is_alive():
+            self.timer.stop()
             self.refresh_status_timer(None)
+            self.app.icon = LEVEL_TYPES['']
+        else:
+            self.timer.start()
+            self.refresh_status(None)
+
 
 if __name__ == "__main__":
     app = App()
