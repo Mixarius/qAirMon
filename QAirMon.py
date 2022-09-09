@@ -169,7 +169,7 @@ class App:
         response = setting_window.run()
         if response.clicked:
             if (payload := str(response.text).strip()).isnumeric():
-                self.timer.nterval = int(payload)*60
+                self.timer.interval = int(payload)*60
                 self.refresh_status(None)
 
 
