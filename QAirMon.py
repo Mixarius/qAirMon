@@ -8,7 +8,7 @@ from fake_user_agent import user_agent
 DEBUG = True
 UA = user_agent('safari')
 
-LEVEL_TYPES = {
+APP_ICON_BY_LEVEL = {
     '': 'data/levels/offline.png',
     'VERY_LOW': 'data/levels/very_low.png',
     'LOW': 'data/levels/low.png',
@@ -17,6 +17,17 @@ LEVEL_TYPES = {
     'VERY_HIGH': 'data/levels/very_high.png',
     'EXTREME': 'data/levels/extreme.png',
     'AIRMAGEDDON': 'data/levels/airmageddon.png'
+}
+
+MESSAGE_ICON_BY_LEVEL = {
+    '': '🔵️',
+    'VERY_LOW': '✅',
+    'LOW': '🟢️',
+    'MEDIUM': '🟡',
+    'HIGH': '🟠',
+    'VERY_HIGH': '🔴',
+    'EXTREME': '🔴',
+    'AIRMAGEDDON': '🟣'
 }
 
 
@@ -28,13 +39,13 @@ class App:
         self.app = None
         self.timer = None
         self.url = 'https://widget.airly.org/api/v1/'
-        self.current_level = LEVEL_TYPES['']
+        self.current_level = APP_ICON_BY_LEVEL['']
         self.latitude = '52.2394646242'  # https://airly.org/map/en/#52.2394646242,21.0457174815
         self.longitude = '21.0457174815'
 
     def run(self):
         """  Run App with parameters  """
-        self.app = rumps.App("Quality Air Monitor", title=None, icon=LEVEL_TYPES[''])
+        self.app = rumps.App("Quality Air Monitor", title=None, icon=APP_ICON_BY_LEVEL[''])
         self.app.menu = [
             rumps.MenuItem(title='Check Now', callback=self.refresh_status),
             rumps.MenuItem(title='Pause Checking', callback=self.switch_timer),
@@ -117,9 +128,10 @@ class App:
         """Refresh AIRLY CAQI information on menu."""
         response = self.get_air_quality()
 
-        self.app.menu['DESCRIPTION'].title = (f'🟢{response["description"]}'
-                                              if response['description']
-                                              else f'🏠Not description')
+        description = (f'{response["description"]}' if response['description']
+                       else f'🏠Not description')
+        self.app.menu['DESCRIPTION'].title = (f'{MESSAGE_ICON_BY_LEVEL[response["level"]]}'
+                                              f'{description}')
 
         self.app.menu['DATE'].title = (f'📅{response["date"]}'
                                        if response["date"] else f'📅Not checked')
@@ -132,7 +144,7 @@ class App:
 
         self.refresh_status_timer(None)
 
-        self.app.icon = LEVEL_TYPES[response['level']]
+        self.app.icon = APP_ICON_BY_LEVEL[response['level']]
 
     def set_coordinates(self, _):
         """ Set address coordinates for monitoring  """
@@ -177,7 +189,7 @@ class App:
         if self.timer.is_alive():
             self.timer.stop()
             self.refresh_status_timer(None)
-            self.app.icon = LEVEL_TYPES['']
+            self.app.icon = APP_ICON_BY_LEVEL['']
         else:
             self.timer.start()
             self.refresh_status(None)
