@@ -171,7 +171,6 @@ class App:
             ok='Save',
             cancel='Cancel'
         )
-        setting_window.icon = 'data/setting.png'
 
         response = setting_window.run()
         if response.clicked:
@@ -190,7 +189,6 @@ class App:
             dimensions=(100, 20)
         )
 
-        setting_window.icon = 'data/setting.png'
         response = setting_window.run()
         if response.clicked:
             if (payload := str(response.text).strip()).isnumeric():
