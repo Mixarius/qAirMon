@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 from datetime import datetime
 
@@ -38,7 +39,8 @@ class App:
     def __init__(self):
         self.app = None
         self.timer = None
-        self.url = 'https://widget.airly.org/api/v1/'
+        self.widget_url = 'https://widget.airly.org/api/v1/'
+        self.map_url = 'https://airly.org/map/en/#'
         self.current_level = ''
         self.latitude = '52.2394646242'  # https://airly.org/map/en/#52.2394646242,21.0457174815
         self.longitude = '21.0457174815'
@@ -52,8 +54,7 @@ class App:
             None,
             rumps.MenuItem(title='DATE'),
             rumps.MenuItem(title='DESCRIPTION', callback=self.send_notification),
-            rumps.MenuItem(title='ADDRESS'),
-            rumps.MenuItem(title='CURRENT_COORDINATES'),
+            rumps.MenuItem(title='ADDRESS', callback=self.go_to_airly_map),
             None,
             [rumps.MenuItem(title='Preferences'),
              [rumps.MenuItem(title='Set coordinates', callback=self.set_coordinates),
@@ -94,7 +95,7 @@ class App:
         }
 
         try:
-            response = requests.get(url=self.url, headers=headers, params=params)
+            response = requests.get(url=self.widget_url, headers=headers, params=params)
             if response and response.status_code == 200:
                 json_data = response.json()
 
@@ -139,8 +140,6 @@ class App:
         self.app.menu['ADDRESS'].title = (f'🏠 {response["address"]}'
                                           if response['address'] else f'🏠Not address')
 
-        self.app.menu['CURRENT_COORDINATES'].title = (f'⛳ {self.latitude},'
-                                                      f' {self.longitude}')
 
         self.refresh_status_timer(None)
 
@@ -203,6 +202,9 @@ class App:
         message = self.app.menu['ADDRESS'].title
 
         rumps.notification(title, subtitle, message, data=None, sound=True)
+
+    def go_to_airly_map(self, _):
+        os.system(f"open \"\" {self.map_url}{self.latitude},{self.longitude}")
 
 
 if __name__ == "__main__":
