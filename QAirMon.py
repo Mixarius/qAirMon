@@ -31,6 +31,16 @@ LEVEL_ICON = {
     'AIRMAGEDDON': '🟣'
 }
 
+LEVEL_MESSAGE = {
+    '': '',
+    'VERY_LOW': 'Very low',
+    'LOW': 'Low',
+    'MEDIUM': 'Medium',
+    'HIGH': 'High',
+    'VERY_HIGH': 'Very high',
+    'EXTREME': 'Extreme',
+    'AIRMAGEDDON': 'Airmagedon'
+}
 
 class App:
     """
@@ -144,6 +154,7 @@ class App:
         self.refresh_status_timer(None)
 
         self.app.icon = APP_ICON[response["level"]]
+        self.app.title = LEVEL_MESSAGE[response["level"]]
 
         if self.current_level != response['level']:
             self.current_level = response['level']
@@ -183,7 +194,12 @@ class App:
         response = setting_window.run()
         if response.clicked:
             if (payload := str(response.text).strip()).isnumeric():
+                timer_status = self.timer.is_alive()
+                if timer_status:
+                    self.timer.stop()
                 self.timer.interval = int(payload)*60
+                if timer_status:
+                    self.timer.start()
                 self.refresh_status_timer(None)
 
     def switch_timer(self, _):
