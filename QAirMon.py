@@ -206,6 +206,7 @@ class App:
             self.timer.stop()
             self.refresh_status_timer(None)
             self.app.icon = APP_ICON['']
+            self.app.title = ''
         else:
             self.timer.start()
             self.refresh_status(None)
