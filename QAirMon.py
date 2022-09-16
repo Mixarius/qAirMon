@@ -136,7 +136,7 @@ class App:
         """Refresh AIRLY CAQI information on menu."""
         response = defaultdict(str)
 
-        if settings.get_bool('timer_enabled'):
+        if settings.get_bool('timer_enabled') or forced is not None:
             response = self.get_air_quality()
 
         description = (f'{response["description"]}' if response['description']
@@ -152,8 +152,9 @@ class App:
 
         self.app.menu['Pause Checking'].state = not settings.get_bool('timer_enabled')
 
-        self.app.icon = APP_ICON[response["level"]]
-        self.app.title = LEVEL_MESSAGE[response["level"]]
+        if forced is None:
+            self.app.icon = APP_ICON[response["level"]]
+            self.app.title = LEVEL_MESSAGE[response["level"]]
 
         if self.current_level != response['level'] and response['level']:
             self.send_notification(None)
