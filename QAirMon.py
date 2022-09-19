@@ -152,7 +152,7 @@ class App:
 
         self.app.menu['Pause Checking'].state = not settings.get_bool('timer_enabled')
 
-        if forced is None:
+        if forced is None or type(forced) == rumps.rumps.Timer:
             self.app.icon = APP_ICON[response["level"]]
             self.app.title = LEVEL_MESSAGE[response["level"]]
 
