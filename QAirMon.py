@@ -68,11 +68,16 @@ class App:
             None,
             rumps.MenuItem(title='DATE'),
             rumps.MenuItem(title='DESCRIPTION', callback=self.send_notification),
-            rumps.MenuItem(title='ADDRESS', callback=self.go_to_airly_map),
+            [rumps.MenuItem(title='ADDRESS'),
+             [rumps.MenuItem(title='Show on map Airly', callback=self.go_to_airly_map)]],
             None,
             [rumps.MenuItem(title='Preferences'),
              [rumps.MenuItem(title='Set coordinates', callback=self.set_coordinates),
               rumps.MenuItem(title='Set timer interval', callback=self.set_timer_interval)]],
+            None,
+            [rumps.MenuItem(title='About'),
+             [rumps.MenuItem(title='Quality Air Monitor v0.1.0'),
+              rumps.MenuItem(title='Open on Github', callback=self.go_to_github)]],
             None,
         ]
 
@@ -192,8 +197,8 @@ class App:
             cancel='Cancel',
             dimensions=(100, 20)
         )
-
         response = setting_window.run()
+
         payload = str(response.text).strip()
         if response.clicked and payload.isnumeric():
             timer_interval = int(payload) * 60
@@ -226,6 +231,9 @@ class App:
 
     def go_to_airly_map(self, _):
         os.system(f"open \"\" {self.map_url}{settings.get('latitude')},{settings.get('longitude')}")
+
+    def go_to_github(self, _):
+        os.system(f"open \"\" https://github.com/Mixarius/qAirMon")
 
 
 if __name__ == "__main__":
