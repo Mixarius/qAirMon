@@ -9,39 +9,39 @@ from easysettings import EasySettings
 
 settings = EasySettings("QAirMon.conf")
 DEBUG = True
-UA = user_agent('safari')
+UA = user_agent("safari")
 
 APP_ICON = {
-    '': 'data/levels/offline.png',
-    'VERY_LOW': 'data/levels/very_low.png',
-    'LOW': 'data/levels/low.png',
-    'MEDIUM': 'data/levels/medium.png',
-    'HIGH': 'data/levels/high.png',
-    'VERY_HIGH': 'data/levels/very_high.png',
-    'EXTREME': 'data/levels/extreme.png',
-    'AIRMAGEDDON': 'data/levels/airmageddon.png'
+    "": "data/levels/offline.png",
+    "VERY_LOW": "data/levels/very_low.png",
+    "LOW": "data/levels/low.png",
+    "MEDIUM": "data/levels/medium.png",
+    "HIGH": "data/levels/high.png",
+    "VERY_HIGH": "data/levels/very_high.png",
+    "EXTREME": "data/levels/extreme.png",
+    "AIRMAGEDDON": "data/levels/airmageddon.png",
 }
 
 LEVEL_ICON = {
-    '': '🔵️',
-    'VERY_LOW': '✅',
-    'LOW': '🟢️',
-    'MEDIUM': '🟡',
-    'HIGH': '🟠',
-    'VERY_HIGH': '🔴',
-    'EXTREME': '🔴',
-    'AIRMAGEDDON': '🟣'
+    "": "🔵️",
+    "VERY_LOW": "✅",
+    "LOW": "🟢️",
+    "MEDIUM": "🟡",
+    "HIGH": "🟠",
+    "VERY_HIGH": "🔴",
+    "EXTREME": "🔴",
+    "AIRMAGEDDON": "🟣",
 }
 
 LEVEL_MESSAGE = {
-    '': '',
-    'VERY_LOW': 'Very low',
-    'LOW': 'Low',
-    'MEDIUM': 'Medium',
-    'HIGH': 'High',
-    'VERY_HIGH': 'Very high',
-    'EXTREME': 'Extreme',
-    'AIRMAGEDDON': 'Airmagedon'
+    "": "",
+    "VERY_LOW": "Very low",
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "VERY_HIGH": "Very high",
+    "EXTREME": "Extreme",
+    "AIRMAGEDDON": "Airmagedon",
 }
 
 
@@ -53,61 +53,81 @@ class App:
     def __init__(self):
         self.app = None
         self.timer = None
-        self.widget_url = 'https://widget.airly.org/api/v1/'
-        self.map_url = 'https://airly.org/map/en/#'
-        self.current_level = ''
+        self.widget_url = "https://widget.airly.org/api/v1/"
+        self.map_url = "https://airly.org/map/en/#"
+        self.current_level = ""
 
     def run(self):
-        """  Run App with parameters  """
+        """Run App with parameters"""
         rumps.debug_mode(DEBUG)
 
         self.app = rumps.App("Quality Air Monitor", title=None)
         self.app.menu = [
-            rumps.MenuItem(title='Check Now', callback=self.refresh_status),
-            rumps.MenuItem(title='Pause Checking', callback=self.switch_timer),
+            rumps.MenuItem(title="Check Now", callback=self.refresh_status),
+            rumps.MenuItem(title="Pause Checking", callback=self.switch_timer),
             None,
-            rumps.MenuItem(title='DATE'),
-            rumps.MenuItem(title='DESCRIPTION', callback=self.send_notification),
-            [rumps.MenuItem(title='ADDRESS'),
-             [rumps.MenuItem(title='Show on map Airly', callback=self.go_to_airly_map)]],
+            rumps.MenuItem(title="DATE"),
+            rumps.MenuItem(title="DESCRIPTION", callback=self.send_notification),
+            [
+                rumps.MenuItem(title="ADDRESS"),
+                [
+                    rumps.MenuItem(
+                        title="Show on map Airly", callback=self.go_to_airly_map
+                    )
+                ],
+            ],
             None,
-            [rumps.MenuItem(title='Preferences'),
-             [rumps.MenuItem(title='Set coordinates', callback=self.set_coordinates),
-              rumps.MenuItem(title='Set timer interval', callback=self.set_timer_interval)]],
+            [
+                rumps.MenuItem(title="Preferences"),
+                [
+                    rumps.MenuItem(
+                        title="Set coordinates", callback=self.set_coordinates
+                    ),
+                    rumps.MenuItem(
+                        title="Set timer interval", callback=self.set_timer_interval
+                    ),
+                ],
+            ],
             None,
-            [rumps.MenuItem(title='About'),
-             [rumps.MenuItem(title='Quality Air Monitor v0.1.0'),
-              rumps.MenuItem(title='Open on Github', callback=self.go_to_github)]],
+            [
+                rumps.MenuItem(title="About"),
+                [
+                    rumps.MenuItem(title="Quality Air Monitor v0.1.0"),
+                    rumps.MenuItem(title="Open on Github", callback=self.go_to_github),
+                ],
+            ],
             None,
         ]
 
-        self.timer = rumps.Timer(callback=self.refresh_status, interval=settings.get('timer_interval'))
+        self.timer = rumps.Timer(
+            callback=self.refresh_status, interval=settings.get("timer_interval")
+        )
 
-        self.set_timer_activity(settings.get_bool('timer_enabled'))
+        self.set_timer_activity(settings.get_bool("timer_enabled"))
         self.app.run()
 
     def get_air_quality(self) -> defaultdict:
-        """ Get air quality from Airly API """
+        """Get air quality from Airly API"""
         result = defaultdict(str)
 
         headers = {
-            'Origin': 'https://airly.org',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Host': 'widget.airly.org',
-            'User-Agent': UA,
-            'Accept-Language': 'en-gb',
-            'Referer': 'https://airly.org/',
+            "Origin": "https://airly.org",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Host": "widget.airly.org",
+            "User-Agent": UA,
+            "Accept-Language": "en-gb",
+            "Referer": "https://airly.org/",
         }
 
         params = {
-            'displayMeasurements': 'false',
-            'latitude': settings.get('latitude'),
-            'longitude': settings.get('longitude'),
-            'id': 'null',
-            'indexType': 'AIRLY_CAQI',
-            'language': 'en',
-            'unitSpeed': 'metric',
-            'unitTemperature': 'celsius'
+            "displayMeasurements": "false",
+            "latitude": settings.get("latitude"),
+            "longitude": settings.get("longitude"),
+            "id": "null",
+            "indexType": "AIRLY_CAQI",
+            "language": "en",
+            "unitSpeed": "metric",
+            "unitTemperature": "celsius",
         }
 
         try:
@@ -115,16 +135,15 @@ class App:
             if response and response.status_code == 200:
                 json_data = response.json()
 
-                result['level'] = json_data['level']
-                result['address'] = json_data['address']
+                result["level"] = json_data["level"]
+                result["address"] = json_data["address"]
 
-                datetime_object = (
-                        datetime.strptime(json_data['date'], '%Y-%m-%dT%H:%M:%S.%fZ') +
-                        (datetime.now() - datetime.utcnow())
-                )
-                result['date'] = datetime_object.strftime('%Y-%m-%d %H:%M:%S')
+                datetime_object = datetime.strptime(
+                    json_data["date"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                ) + (datetime.now() - datetime.utcnow())
+                result["date"] = datetime_object.strftime("%Y-%m-%d %H:%M:%S")
 
-                result['description'] = json_data['description']
+                result["description"] = json_data["description"]
 
         except requests.exceptions.ConnectionError as err:
             print("Connection Error:", err)
@@ -141,70 +160,75 @@ class App:
         """Refresh AIRLY CAQI information on menu."""
         response = defaultdict(str)
 
-        if settings.get_bool('timer_enabled') or forced is not None:
+        if settings.get_bool("timer_enabled") or forced is not None:
             response = self.get_air_quality()
 
-        description = (f'{response["description"]}' if response['description']
-                       else f'Not description')
-        self.app.menu['DESCRIPTION'].title = (f'{LEVEL_ICON[response["level"]]} '
-                                              f'{description}')
+        description = (
+            f'{response["description"]}'
+            if response["description"]
+            else f"Not description"
+        )
+        self.app.menu["DESCRIPTION"].title = (
+            f'{LEVEL_ICON[response["level"]]} ' f"{description}"
+        )
 
-        self.app.menu['DATE'].title = (f'📅 {response["date"]}'
-                                       if response["date"] else f'📅 Not checked')
+        self.app.menu["DATE"].title = (
+            f'📅 {response["date"]}' if response["date"] else f"📅 Not checked"
+        )
 
-        self.app.menu['ADDRESS'].title = (f'🏠 {response["address"]}'
-                                          if response['address'] else f'🏠 Not address')
+        self.app.menu["ADDRESS"].title = (
+            f'🏠 {response["address"]}' if response["address"] else f"🏠 Not address"
+        )
 
-        self.app.menu['Pause Checking'].state = not settings.get_bool('timer_enabled')
+        self.app.menu["Pause Checking"].state = not settings.get_bool("timer_enabled")
 
         if forced is None or type(forced) == rumps.rumps.Timer:
             self.app.icon = APP_ICON[response["level"]]
             self.app.title = LEVEL_MESSAGE[response["level"]]
 
-        if self.current_level != response['level'] and response['level']:
+        if self.current_level != response["level"] and response["level"]:
             self.send_notification(None)
 
-        self.current_level = response['level']
+        self.current_level = response["level"]
 
     def set_coordinates(self, _):
-        """ Set address coordinates for monitoring  """
+        """Set address coordinates for monitoring"""
         setting_window = rumps.Window(
-            title='Coordinates',
-            message=f'Set the coordinates where you want to monitor the air.\n '
-                    f'Copy the coordinates into Google Maps and paste them here.\n'
-                    f'For example: 52.23955, 21.045800',
+            title="Coordinates",
+            message=f"Set the coordinates where you want to monitor the air.\n "
+            f"Copy the coordinates into Google Maps and paste them here.\n"
+            f"For example: 52.23955, 21.045800",
             default_text=f'{settings.get("latitude")}, {settings.get("longitude")}',
-            ok='Save',
-            cancel='Cancel'
+            ok="Save",
+            cancel="Cancel",
         )
 
         response = setting_window.run()
         if response.clicked:
-            latitude, longitude = (s.strip() for s in str(response.text).split(','))
-            settings.set('latitude', latitude)
-            settings.set('longitude', longitude)
+            latitude, longitude = (s.strip() for s in str(response.text).split(","))
+            settings.set("latitude", latitude)
+            settings.set("longitude", longitude)
             settings.save()
             self.refresh_status(None)
 
     def set_timer_interval(self, _):
-        """ Set interval in seconds to wait before requesting the Airly API  """
+        """Set interval in seconds to wait before requesting the Airly API"""
         setting_window = rumps.Window(
-            title='Timer',
-            message=f'Set interval in minutes to wait before requesting the Airly.'
-                    f'',
+            title="Timer",
+            message=f"Set interval in minutes to wait before requesting the Airly." f"",
             default_text=f'{int(settings.get("timer_interval")) // 60}',
-            ok='Save',
-            cancel='Cancel',
-            dimensions=(100, 20)
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(100, 20),
         )
         response = setting_window.run()
 
         payload = str(response.text).strip()
         if response.clicked and payload.isnumeric():
             timer_interval = int(payload) * 60
-            settings.setsave('timer_interval', timer_interval)
+            settings.setsave("timer_interval", timer_interval)
 
-            if settings.get_bool('timer_enabled'):
+            if settings.get_bool("timer_enabled"):
                 self.set_timer_activity(False)
                 self.timer.interval = timer_interval
                 self.set_timer_activity(True)
@@ -216,40 +240,42 @@ class App:
             self.timer.start()
         else:
             self.timer.stop()
-        settings.setsave('timer_enabled', status)
+        settings.setsave("timer_enabled", status)
         self.refresh_status(None)
 
     def switch_timer(self, _):
-        self.set_timer_activity(not settings.get_bool('timer_enabled'))
+        self.set_timer_activity(not settings.get_bool("timer_enabled"))
 
     def send_notification(self, _):
-        title = self.app.menu['DESCRIPTION'].title
+        title = self.app.menu["DESCRIPTION"].title
         subtitle = None
-        message = self.app.menu['ADDRESS'].title
+        message = self.app.menu["ADDRESS"].title
 
         rumps.notification(title, subtitle, message, data=None, sound=True)
 
     def go_to_airly_map(self, _):
-        os.system(f"open \"\" {self.map_url}{settings.get('latitude')},{settings.get('longitude')}")
+        os.system(
+            f"open \"\" {self.map_url}{settings.get('latitude')},{settings.get('longitude')}"
+        )
 
     def go_to_github(self, _):
-        os.system(f"open \"\" https://github.com/Mixarius/qAirMon")
+        os.system(f'open "" https://github.com/Mixarius/qAirMon')
 
 
 if __name__ == "__main__":
     settings.configfile_exists()
 
-    if not settings.has_option('latitude'):
-        settings.set('latitude', '52.2394646242')
+    if not settings.has_option("latitude"):
+        settings.set("latitude", "52.2394646242")
 
-    if not settings.has_option('longitude'):
-        settings.set('longitude', '21.0457174815')
+    if not settings.has_option("longitude"):
+        settings.set("longitude", "21.0457174815")
 
-    if not settings.has_option('timer_interval'):
-        settings.set('timer_interval', 300)
+    if not settings.has_option("timer_interval"):
+        settings.set("timer_interval", 300)
 
-    if not settings.has_option('timer_enabled'):
-        settings.set('timer_enabled', True)
+    if not settings.has_option("timer_enabled"):
+        settings.set("timer_enabled", True)
 
     settings.save()
 
