@@ -2,3 +2,6 @@ fake-user-agent==2.1.5
 requests==2.28.1
 rumps==0.3.0
 
+
+setuptools~=65.3.0
+EasySettings~=4.0.1

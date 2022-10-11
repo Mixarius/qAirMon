@@ -47,6 +47,67 @@ LEVEL_MESSAGE = {
 settings = EasySettings("QAirMon.conf")
 
 
+def get_air_quality() -> defaultdict:
+    """Get air quality from Airly API"""
+    result = defaultdict(str)
+
+    headers = {
+        "Origin": "https://airly.org",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Host": "widget.airly.org",
+        "User-Agent": UA,
+        "Accept-Language": "en-gb",
+        "Referer": "https://airly.org/",
+    }
+
+    params = {
+        "displayMeasurements": "false",
+        "latitude": settings.get("latitude"),
+        "longitude": settings.get("longitude"),
+        "id": "null",
+        "indexType": "AIRLY_CAQI",
+        "language": "en",
+        "unitSpeed": "metric",
+        "unitTemperature": "celsius",
+    }
+
+    try:
+        response = requests.get(url=WIDGET_URL, headers=headers, params=params)
+        if response and response.status_code == 200:
+            json_data = response.json()
+
+            result["level"] = json_data["level"]
+            result["address"] = json_data["address"]
+
+            datetime_object = datetime.strptime(
+                json_data["date"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            ) + (datetime.now() - datetime.utcnow())
+            result["date"] = datetime_object.strftime("%Y-%m-%d %H:%M:%S")
+
+            result["description"] = json_data["description"]
+
+    except requests.exceptions.ConnectionError as err:
+        print("Connection Error:", err)
+    except requests.exceptions.HTTPError as err:
+        print("Http Error:", err)
+    except requests.exceptions.Timeout as err:
+        print("Timeout Error:", err)
+    except requests.exceptions.RequestException as err:
+        print("OOps: Something Else", err)
+
+    return result
+
+
+def go_to_airly_map(_):
+    os.system(
+        f"open \"\" {MAP_URL}{settings.get('latitude')},{settings.get('longitude')}"
+    )
+
+
+def go_to_github(_):
+    os.system(f'open "" {GITHUB_URL}')
+
+
 class App:
     """
     System Tray app for monitoring air quality via Airly API
@@ -70,11 +131,7 @@ class App:
             rumps.MenuItem(title="DESCRIPTION", callback=self.send_notification),
             [
                 rumps.MenuItem(title="ADDRESS"),
-                [
-                    rumps.MenuItem(
-                        title="Show on map Airly", callback=self.go_to_airly_map
-                    )
-                ],
+                [rumps.MenuItem(title="Show on map Airly", callback=go_to_airly_map)],
             ],
             None,
             [
@@ -93,7 +150,7 @@ class App:
                 rumps.MenuItem(title="About"),
                 [
                     rumps.MenuItem(title=f"Quality Air Monitor {VERSION}"),
-                    rumps.MenuItem(title="Open on Github", callback=self.go_to_github),
+                    rumps.MenuItem(title="Open on Github", callback=go_to_github),
                 ],
             ],
             None,
@@ -112,62 +169,12 @@ class App:
         self.app.icon = APP_ICON[""]
         self.app.run()
 
-    def get_air_quality(self) -> defaultdict:
-        """Get air quality from Airly API"""
-        result = defaultdict(str)
-
-        headers = {
-            "Origin": "https://airly.org",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Host": "widget.airly.org",
-            "User-Agent": UA,
-            "Accept-Language": "en-gb",
-            "Referer": "https://airly.org/",
-        }
-
-        params = {
-            "displayMeasurements": "false",
-            "latitude": settings.get("latitude"),
-            "longitude": settings.get("longitude"),
-            "id": "null",
-            "indexType": "AIRLY_CAQI",
-            "language": "en",
-            "unitSpeed": "metric",
-            "unitTemperature": "celsius",
-        }
-
-        try:
-            response = requests.get(url=WIDGET_URL, headers=headers, params=params)
-            if response and response.status_code == 200:
-                json_data = response.json()
-
-                result["level"] = json_data["level"]
-                result["address"] = json_data["address"]
-
-                datetime_object = datetime.strptime(
-                    json_data["date"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                ) + (datetime.now() - datetime.utcnow())
-                result["date"] = datetime_object.strftime("%Y-%m-%d %H:%M:%S")
-
-                result["description"] = json_data["description"]
-
-        except requests.exceptions.ConnectionError as err:
-            print("Connection Error:", err)
-        except requests.exceptions.HTTPError as err:
-            print("Http Error:", err)
-        except requests.exceptions.Timeout as err:
-            print("Timeout Error:", err)
-        except requests.exceptions.RequestException as err:
-            print("OOps: Something Else", err)
-
-        return result
-
     def refresh_status(self, forced):
         """Refresh AIRLY CAQI information on menu."""
         response = defaultdict(str)
 
         if settings.get_bool("timer_enabled") or forced is not None:
-            response = self.get_air_quality()
+            response = get_air_quality()
 
         description = (
             f'{response["description"]}'
@@ -247,6 +254,9 @@ class App:
         else:
             self.timer.stop()
         settings.setsave("timer_enabled", status)
+        self.app.menu["Pause Checking"].state = not settings.get_bool("timer_enabled")
+        self.app.icon = APP_ICON[""]
+        self.app.title = ""
 
     def switch_timer(self, _):
         self.set_timer_activity(not settings.get_bool("timer_enabled"))
@@ -257,14 +267,6 @@ class App:
         message = self.app.menu["ADDRESS"].title
 
         rumps.notification(title, subtitle, message, data=None, sound=True)
-
-    def go_to_airly_map(self, _):
-        os.system(
-            f"open \"\" {MAP_URL}{settings.get('latitude')},{settings.get('longitude')}"
-        )
-
-    def go_to_github(self, _):
-        os.system(f'open "" {GITHUB_URL}')
 
 
 if __name__ == "__main__":
