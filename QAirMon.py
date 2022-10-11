@@ -7,10 +7,12 @@ import rumps
 from fake_user_agent import user_agent
 from easysettings import EasySettings
 
-settings = EasySettings("QAirMon.conf")
+VERSION = "v0.1.1"
 DEBUG = True
 UA = user_agent("safari")
-
+WIDGET_URL = "https://widget.airly.org/api/v1/"
+MAP_URL = "https://airly.org/map/en/#"
+GITHUB_URL = "https://github.com/Mixarius/qAirMon"
 APP_ICON = {
     "": "data/levels/offline.png",
     "VERY_LOW": "data/levels/very_low.png",
@@ -21,7 +23,6 @@ APP_ICON = {
     "EXTREME": "data/levels/extreme.png",
     "AIRMAGEDDON": "data/levels/airmageddon.png",
 }
-
 LEVEL_ICON = {
     "": "🔵️",
     "VERY_LOW": "✅",
@@ -32,7 +33,6 @@ LEVEL_ICON = {
     "EXTREME": "🔴",
     "AIRMAGEDDON": "🟣",
 }
-
 LEVEL_MESSAGE = {
     "": "",
     "VERY_LOW": "Very low",
@@ -44,6 +44,8 @@ LEVEL_MESSAGE = {
     "AIRMAGEDDON": "Airmagedon",
 }
 
+settings = EasySettings("QAirMon.conf")
+
 
 class App:
     """
@@ -53,8 +55,6 @@ class App:
     def __init__(self):
         self.app = None
         self.timer = None
-        self.widget_url = "https://widget.airly.org/api/v1/"
-        self.map_url = "https://airly.org/map/en/#"
         self.current_level = ""
 
     def run(self):
@@ -92,7 +92,7 @@ class App:
             [
                 rumps.MenuItem(title="About"),
                 [
-                    rumps.MenuItem(title="Quality Air Monitor v0.1.0"),
+                    rumps.MenuItem(title=f"Quality Air Monitor {VERSION}"),
                     rumps.MenuItem(title="Open on Github", callback=self.go_to_github),
                 ],
             ],
@@ -104,6 +104,12 @@ class App:
         )
 
         self.set_timer_activity(settings.get_bool("timer_enabled"))
+
+        self.app.menu["DATE"].title = f"📅 Not checked"
+        self.app.menu["DESCRIPTION"].title = f'{LEVEL_ICON[""]} ' f"Not description"
+        self.app.menu["ADDRESS"].title = f"🏠 Not address"
+        self.app.menu["Pause Checking"].state = not settings.get_bool("timer_enabled")
+        self.app.icon = APP_ICON[""]
         self.app.run()
 
     def get_air_quality(self) -> defaultdict:
@@ -131,7 +137,7 @@ class App:
         }
 
         try:
-            response = requests.get(url=self.widget_url, headers=headers, params=params)
+            response = requests.get(url=WIDGET_URL, headers=headers, params=params)
             if response and response.status_code == 200:
                 json_data = response.json()
 
@@ -241,7 +247,6 @@ class App:
         else:
             self.timer.stop()
         settings.setsave("timer_enabled", status)
-        self.refresh_status(None)
 
     def switch_timer(self, _):
         self.set_timer_activity(not settings.get_bool("timer_enabled"))
@@ -255,11 +260,11 @@ class App:
 
     def go_to_airly_map(self, _):
         os.system(
-            f"open \"\" {self.map_url}{settings.get('latitude')},{settings.get('longitude')}"
+            f"open \"\" {MAP_URL}{settings.get('latitude')},{settings.get('longitude')}"
         )
 
     def go_to_github(self, _):
-        os.system(f'open "" https://github.com/Mixarius/qAirMon')
+        os.system(f'open "" {GITHUB_URL}')
 
 
 if __name__ == "__main__":
